@@ -9,7 +9,9 @@ test('xml', function (t) {
     t.plan(1);
     var tr = trumpet();
 
+    var first = true;
     var xml = tr.selectAll('*', function () {
+        if (!first) { return; } first = false;
         console.error(arguments);
     });
 
