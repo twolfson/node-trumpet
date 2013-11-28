@@ -9,15 +9,16 @@ test('xml', function (t) {
     t.plan(1);
     var tr = trumpet();
 
-    var first = true;
-    var xml = tr.selectAll('*', function () {
-        if (!first) { return; } first = false;
-        console.error(arguments);
+    var els = [];
+    var xml = tr.selectAll('*', function (node) {
+        // els.push(node);
+        console.error(node.name);
     });
 
     fs.createReadStream(__dirname + '/xml.xml')
         .pipe(tr)
         .pipe(concat(function (src) {
+            // console.error(els);
             t.equal(src.toString('utf8'), expected);
         }))
     ;
