@@ -12,7 +12,9 @@ test('xml', function (t) {
     var els = [];
     var xml = tr.selectAll('*', function (node) {
         // els.push(node);
-        console.error(node.name);
+        if (node.name === 'M:CSSVALIDATIONRESPONSE') {
+            console.error(node);
+        }
     });
 
     fs.createReadStream(__dirname + '/xml.xml')
