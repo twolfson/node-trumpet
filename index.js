@@ -14,48 +14,48 @@ module.exports = function (opts) {
     var skipping = false;
     var skipSpace = false;
     var lastToken = null;
-    
+
     tokens.pipe(through(write, end));
-    
+
     var tr = through(
         function (buf) { tokens.write(buf) },
         function () { tokens.end() }
     );
-    
+
     tr.select = function (sel) {
         var r = createResult(sel, { all: false });
         return r;
     };
-    
+
     tr.selectAll = function (sel, cb) {
         var r = createResult(sel, { all: true });
-        
+
         r._matcher.on('pre-open', function (m) {
             r.name = m.current.name;
             r.attributes = m.current.attributes;
             r.isSelfClosing = m.current.isSelfClosing;
             cb(r);
         });
-        
+
         r._matcher.on('tag-end', function (node) {
             r._getAttr = {};
             r._setAttr = {};
             r._rmAttr = {};
         });
     };
-    
+
     tr.createReadStream = function (sel, opts) {
         return tr.select(sel).createReadStream(opts);
     };
-    
+
     tr.createWriteStream = function (sel, opts) {
         return tr.select(sel).createWriteStream(opts);
     };
-    
+
     tr.createStream = function (sel, opts) {
         return tr.select(sel).createStream(opts);
     };
-    
+
     // End any read streams of unmatched selectors
     tr.on("end", function() {
         selectors.forEach(function(r) {
@@ -64,12 +64,12 @@ module.exports = function (opts) {
             });
         });
     });
-    
+
     return tr;
-    
+
     function createResult (sel, opts) {
         var r = new Result(sel);
-        
+
         if (opts.all === false) {
             r._matcher.once('unmatch', function () {
                 if (!r._reading && !r._writing) {
@@ -82,7 +82,7 @@ module.exports = function (opts) {
                 if (ix >= 0) selectors.splice(ix, 1);
             });
         }
-        
+
         r.on('_write-begin', function (stream) {
             if (lastToken[0] === 'tag-end'
             && lastToken[1].length > 0
@@ -90,14 +90,14 @@ module.exports = function (opts) {
             ) {
                 if (lastToken[1].length) tr.queue(lastToken[1]);
             }
-            
+
             if (stream._skipping !== false) {
                 tokens.pause();
             }
             skipping = true;
             stream.pipe(through(write, end));
             stream.resume();
-            
+
             function write (buf) {
                 if (Buffer.isBuffer(buf)) {
                     if (buf.length) tr.queue(buf)
@@ -116,21 +116,21 @@ module.exports = function (opts) {
                 }
             }
         });
-        
+
         r.on('_write-end', function () {
             skipping = false;
         });
-        
+
         r.on('queue', function (buf) { tr.queue(buf) });
-        
+
         selectors.push(r);
         return r;
     }
-    
+
     function write (lex) {
         lastToken = lex;
         var writeSkip = false;
-        
+
         var sub;
         selectors.forEach(function (s) {
             s._at(lex);
@@ -144,13 +144,13 @@ module.exports = function (opts) {
                 writeSkip = true;
             }
         });
-        
+
         if (skipSpace) {
             skipSpace = false;
             if (lex[0] === 'tag-space') return;
         }
         if (skipping || writeSkip) return;
-        
+
         if (sub === undefined) {
             if (lex[1].length) tr.queue(lex[1]);
         }
@@ -159,7 +159,7 @@ module.exports = function (opts) {
         }
         else if (sub.length) tr.queue(sub);
     }
-    
+
     function end () {
         tr.queue(null);
     }
@@ -174,33 +174,33 @@ function Result (sel) {
     self._getAttr = {};
     self._readStreams = [];
     self._writeStream = null;
-    
+
     self._reading = false;
     self._writing = false;
     self._matcher = matcher(parseSelector(sel));
-    
+
     var remainingSets = [];
     self._matcher.on('open', function (m) {
         remainingSets = Object.keys(self._setAttr);
-        
+
         if (self._writeStream && self._writeStream.outer) {
             self._writing = true;
             self._writeLevel = m.stack.length;
             self.emit('_write-begin', self._writeStream);
         }
     });
-    
+
     self._matcher.on('tag-end', function (m) {
         for (var i = 0; i < remainingSets.length; i++) {
             var key = remainingSets[i];
             self.emit('queue', Buffer(' ' + self._setAttr[key]));
         }
-        
+
         if (self._readStreams.length) {
             self._reading = true;
             self._readMatcher = m;
             self._readLevel = m.stack.length;
-            
+
             for (var i = 0; i < self._readStreams.length; i++) {
                 if (self._readStreams[i]._level === undefined) {
                     self._readStreams[i]._level = self._readLevel;
@@ -213,7 +213,7 @@ function Result (sel) {
             self.emit('_write-begin', self._writeStream);
         }
     });
-    
+
     self._matcher.on('attribute', function (node) {
         var f = self._getAttr[node.name];
         if (f) f(node.value);
@@ -234,7 +234,7 @@ Result.prototype._at = function (lex) {
         if (lex[0] === 'closetag') {
             var level = this._matcher.matchers[0].stack.length;
             var removed = 0;
-            
+
             for (var i = this._readStreams.length - 1; i >= 0; i--) {
                 var s = this._readStreams[i];
                 if (s._level === level) {
@@ -254,7 +254,7 @@ Result.prototype._at = function (lex) {
             if (s._level !== undefined && lex[1].length) s.queue(lex[1]);
         }
     }
-    
+
     if (this._writing === 'next') {
         this._writing = false;
         this.emit('_write-end');
@@ -271,7 +271,7 @@ Result.prototype._at = function (lex) {
             }
         }
     }
-    
+
     var matching = this._matcher.at(lex[0], lex[2]);
     if (matching) {
         for (var i = 0; i < this._readStreams.length; i++) {

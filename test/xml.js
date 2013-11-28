@@ -10,7 +10,7 @@ test('xml', function (t) {
     var tr = trumpet();
 
     var els = [];
-    var xml = tr.selectAll('*', function (node) {
+    var xml = tr.selectAll('M:CSSVALIDATIONRESPONSE', function (node) {
         // els.push(node);
         if (node.name === 'M:CSSVALIDATIONRESPONSE') {
             console.error(node);
